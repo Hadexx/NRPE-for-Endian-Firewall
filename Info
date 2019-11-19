@@ -1,0 +1,92 @@
+NRPE for Endian Firewall
+
+December 31st, 2009 ntavares Posted in en_US, monitorização, nagios |
+Ouvir com webReader
+
+Finally I had the time to compile NRPE (the nagios addon) for Endian Firewall. If you are in a hurry, look for the download section below.
+
+First of all, an important finding is that Endian Firewall (EFW) seems to be based on Fedora Core 3, so maybe sometimes you can spare some work by installing FC3 RPMs directly. And that’s what we’ll do right away, so we can move around EFW more easily.
+Packaging and installing NRPE
+
+    Install wget:
+
+    rpm -Uvh http://archives.fedoraproject.org/pub/archive/fedora/linux/core/3/i386/os/Fedora/RPMS/info-4.7-5.i386.rpm
+    rpm -Uvh http://archives.fedoraproject.org/pub/archive/fedora/linux/core/3/i386/os/Fedora/RPMS/wget-1.9.1-17.i386.rpm
+
+    If you don’t have an Endian Community Account, register yourself at: http://www.endian.org/register
+    Then you can run, from the shell:
+
+    efw-upgrade
+
+    This command will ask you the profile your dummy endian should assume and will install the necessary build tools if you choose development.
+    Grab the source for NRPE from: http://www.nagios.org/download/addons/ (it was version 2.12 in my case):
+
+    cd /root
+    wget http://prdownloads.sourceforge.net/sourceforge/nagios/nrpe-2.12.tar.gz
+
+    Now place the files for RPM building. Refer to rpmbuild(8) man page if you are not familiar with the requirements.
+
+    cd /usr/src/endian/SOURCES
+    cp /root/nrpe-2.12.tar.gz .
+    tar xfvz /root/nrpe-2.12.tar.gz
+    cp nrpe-2.12/nrpe.spec ../SPECS
+
+    For NRPE to work seemlessly within EFW some minor adjustments have to be made. I’m providing them here, with a brief explanation: nrpe-2.12-init-script.patch will fix some assumptions made for general RPMs and nrpe-2.12-spec.patch will remove unused dependencies and provide an EFW startup script. Apply these patches into the distribution you unpacked in the previous step - refer to patch(1) man page.
+
+    After applying the patches to the uncompressed distribution, you’ll need to repackage the tarball - it will be automatically decompressed for the building stage.
+    Now build everything:
+
+    rpmbuild -ba /usr/src/endian/SPECS/nrpe.spec
+
+
+    This should compile you the RPM for you current architecture. It will integrate in for shell administration only, which means you won’t be able to control it from the web interface.
+    Finally, install the package:
+
+    rpm -ivh /usr/src/endian/RPMS/`uname -i`/nrpe-2.12-1.`uname -i`.rpm
+
+
+    And that should be it, for NRPE. Go on and setup /etc/nagios/nrpe.cfg and don’t forget to add the firewall rules for the port you selected (default is 5666).
+
+Packaging and installing nagios-plugins
+
+    Grab the source at: http://sourceforge.net/projects/nagiosplug/files/
+
+
+    cd /root
+    wget http://sourceforge.net/projects/nagiosplug/files/nagiosplug/1.4.14/nagios-plugins-1.4.14.tar.gz/download
+
+    Repeat the procedure you did for NRPE: place the tarball on SOURCES and the spec file on SPECS:
+
+    cp nagios-plugins-1.4.14.tar.gz /usr/src/endian/SOURCES/
+    cd /usr/src/endian/SOURCES/
+    tar xfvz nagios-plugins-1.4.14.tar.gz
+    chown -R root:root nagios-plugins-1.4.14
+    cp nagios-plugins-1.4.14/nagios-plugins.spec ../SPECS/
+
+    This bundle of plugins includes the so-called standard plugins for nagios. They are a lot and you maybe can just cut some off so the building is quicker. Also, you may avoid depend on perl(Net::SNMP), perl(Crypt::DES) and perl(Socket6) - which you can grab from DAG’s RPM repo (remember the FC3 branching).
+
+
+    cd /root
+    wget http://dag.wieers.com/rpm/packages/perl-Net-SNMP/perl-Net-SNMP-5.2.0-1.1.fc3.rf.noarch.rpm
+    wget http://dag.wieers.com/rpm/packages/perl-Crypt-DES/perl-Crypt-DES-2.05-3.1.fc3.rf.i386.rpm
+    wget http://dag.wieers.com/rpm/packages/perl-Socket6/perl-Socket6-0.19-1.1.fc3.rf.i386.rpm
+
+    Finally, install everything:
+
+    rpm -ivh perl-Net-SNMP-5.2.0-1.1.fc3.rf.noarch.rpm \
+    perl-Crypt-DES-2.05-3.1.fc3.rf.i386.rpm \
+    perl-Socket6-0.19-1.1.fc3.rf.i386.rpm \
+    /usr/src/endian/RPMS/i386/nagios-plugins-1.4.14-1.i386.rpm
+
+Final notes
+
+Be aware that this is a sample demonstration. I was more interested in having it done for my case - since I can fix future problems - rather than doing a proper/full EFW integration. If you think you can contribute with tweaking this build process just drop me a note.
+
+
+Download
+
+
+Here are the RPMs which include the supra-mentioned tweaks (this required extra patching on the .spec file and include the patch within the source):
+
+    nrpe-2.12-1.i386.rpm (src.rpm) (gpshumano.blogs.dri.pt/extrafiles/ntavares/rpms/endian-2.2/nrpe-2.12-1.i386.rpm)
+    nagios-plugins-1.4.14-1.i386.rpm (src.rpm) (gpshumano.blogs.dri.pt/extrafiles/ntavares/rpms/endian-2.2/nagios-plugins-1.4.14-1.i386.rpm)
